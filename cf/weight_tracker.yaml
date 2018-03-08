@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Weight Tracker Stack
+
+Parameters:
+  Stage: 
+    Description: Name of the stage to deploy.
+    Type: String
+    AllowedPattern: '\w+'
+    Default: dev
+
+Mappings:
+  DDBProvisioning:
+    dev:
+      ReadCapacityUnits: 5
+      WriteCapacityUnits: 5
+      MaxReadCapacityUnits: 10
+      MaxWriteCapacityUnits: 10
+    prod:
+      ReadCapacityUnits: 5
+      WriteCapacityUnits: 5
+      MaxReadCapacityUnits: 50
+      MaxWriteCapacityUnits: 50
+
+Resources:
+  UsersDB:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Sub 'users-${Stage}'
+      AttributeDefinitions:
+        -
+          AttributeName: user_id
+          AttributeType: S
+      KeySchema:
+        -
+          AttributeName: user_id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: !FindInMap [ DDBProvisioning, !Ref Stage, ReadCapacityUnits ]
+        WriteCapacityUnits: !FindInMap [ DDBProvisioning, !Ref Stage, WriteCapacityUnits ]
+
+  DDBAutoScalingRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub 'ddbautoscaling-${Stage}'
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - application-autoscaling.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      Path: "/alexa-wt/"
+      Policies:
+        -
+          PolicyName: DDBAutoScalingAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "dynamodb:DescribeTable"
+                  - "dynamodb:UpdateTable"
+                  - "cloudwatch:PutMetricAlarm"
+                  - "cloudwatch:DescribeAlarms"
+                  - "cloudwatch:GetMetricStatistics"
+                  - "cloudwatch:SetAlarmState"
+                  - "cloudwatch:DeleteAlarms"
+                Resource: "*"  
+
+  WeightsDB:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: !Sub 'weights-${Stage}'
+      AttributeDefinitions:
+        -
+          AttributeName: user_id
+          AttributeType: S
+        -
+          AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        -
+          AttributeName: user_id
+          KeyType: HASH
+        -
+          AttributeName: timestamp
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: !FindInMap [ DDBProvisioning, !Ref Stage, ReadCapacityUnits ]
+        WriteCapacityUnits: !FindInMap [ DDBProvisioning, !Ref Stage, WriteCapacityUnits ]
+      
+  UsersReadScalableTarget:
+    Type: "AWS::ApplicationAutoScaling::ScalableTarget"
+    Properties:
+      MinCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, ReadCapacityUnits ]
+      MaxCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, MaxReadCapacityUnits ]
+      ResourceId: !Sub [ 'table/${TableName}', {TableName: !Ref UsersDB} ]
+      RoleARN: !GetAtt DDBAutoScalingRole.Arn
+      ScalableDimension: dynamodb:table:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  
+  UsersWriteScalableTarget:
+    Type: "AWS::ApplicationAutoScaling::ScalableTarget"
+    Properties:
+      MinCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, WriteCapacityUnits ]
+      MaxCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, MaxWriteCapacityUnits ]
+      ResourceId: !Sub [ 'table/${TableName}', {TableName: !Ref UsersDB} ]
+      RoleARN: !GetAtt DDBAutoScalingRole.Arn
+      ScalableDimension: dynamodb:table:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  
+  UsersReadScalingPolicy:
+    Type: "AWS::ApplicationAutoScaling::ScalingPolicy"
+    Properties:
+      PolicyName: UsersReadScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref UsersReadScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+  UsersWriteScalingPolicy:
+    Type: "AWS::ApplicationAutoScaling::ScalingPolicy"
+    Properties:
+      PolicyName: UsersWriteScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref UsersWriteScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+
+  WeightsReadScalableTarget:
+    Type: "AWS::ApplicationAutoScaling::ScalableTarget"
+    Properties:
+      MinCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, ReadCapacityUnits ]
+      MaxCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, MaxReadCapacityUnits ]
+      ResourceId: !Sub [ 'table/${TableName}', {TableName: !Ref WeightsDB} ]
+      RoleARN: !GetAtt DDBAutoScalingRole.Arn
+      ScalableDimension: dynamodb:table:ReadCapacityUnits
+      ServiceNamespace: dynamodb
+  
+  WeightsWriteScalableTarget:
+    Type: "AWS::ApplicationAutoScaling::ScalableTarget"
+    Properties:
+      MinCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, WriteCapacityUnits ]
+      MaxCapacity: !FindInMap [ DDBProvisioning, !Ref Stage, MaxWriteCapacityUnits ]
+      ResourceId: !Sub [ 'table/${TableName}', {TableName: !Ref WeightsDB} ]
+      RoleARN: !GetAtt DDBAutoScalingRole.Arn
+      ScalableDimension: dynamodb:table:WriteCapacityUnits
+      ServiceNamespace: dynamodb
+  
+  WeightsReadScalingPolicy:
+    Type: "AWS::ApplicationAutoScaling::ScalingPolicy"
+    Properties:
+      PolicyName: WeightsReadScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref WeightsReadScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBReadCapacityUtilization
+
+  WeightsWriteScalingPolicy:
+    Type: "AWS::ApplicationAutoScaling::ScalingPolicy"
+    Properties:
+      PolicyName: WeightsWriteScalingPolicy
+      PolicyType: TargetTrackingScaling
+      ScalingTargetId: !Ref WeightsWriteScalableTarget
+      TargetTrackingScalingPolicyConfiguration:
+        TargetValue: 70.0
+        ScaleInCooldown: 60
+        ScaleOutCooldown: 60
+        PredefinedMetricSpecification:
+          PredefinedMetricType: DynamoDBWriteCapacityUtilization
+  
+  DynamoDBAccess:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: Allow access to DynamoDB tables.
+      Path: '/alexa-wt/'
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action: 'dynamodb:*'
+            Effect: Allow
+            Resource:
+              - !GetAtt UsersDB.Arn
+              - !GetAtt WeightsDB.Arn
+      ManagedPolicyName: !Sub 'DynamoDBAccess-${Stage}'
+
+  WeightTrackerRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Ref DynamoDBAccess
+      Path: '/alexa-wt/'
+      RoleName: !Sub 'weight-tracker-${Stage}'
