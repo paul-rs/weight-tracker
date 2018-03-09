@@ -38,5 +38,5 @@ class WeightLog(Model):
         else:
             raise TypeError('Invalid type for attribute "timestamp".')
     
-    def __repr(self):
+    def __repr__(self):
         return ':'.join([self.user_id, self.timestamp.isoformat()])

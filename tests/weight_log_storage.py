@@ -5,7 +5,7 @@ from core.weight_log import WeightLog
 from core.config import DEFAULT_REGION
 from datetime import datetime
 from moto.dynamodb2 import mock_dynamodb2
-from core.weight_log_storage import WeightLogStorage
+from storage.weight_log_storage import WeightLogStorage
 from utils.random_utils import random_string, random_decimal
 from dateutil.relativedelta import relativedelta
 
@@ -46,23 +46,38 @@ class WeightLogStorageTests(unittest.TestCase):
         finally:
             self.mock_dynamodb.stop()
 
-    def test_save(self):
-        log = WeightLog(
+    def random_log(self):
+        return WeightLog(
             user_id=self.user_id,
             weight=random_decimal(start=40, end=200),
             unit='kg', timestamp=datetime.utcnow()
         )
+
+    def test_json(self):
+        log = self.random_log()
+        self.assertEqual(log, WeightLog(**log.to_json()))
+
+    def test_save(self):
+        log = self.random_log()
         self.storage.save(log)
         saved_log = self.storage.get(log.user_id, log.timestamp)
         self.assertEqual(saved_log, log)
 
+    def test_remove(self):
+        log = self.random_log()
+        self.storage.save(log)
+        saved_log = self.storage.get(log.user_id, log.timestamp)
+        self.assertEqual(saved_log, log)
+
+        self.storage.remove(user_id=log.user_id, timestamp=log.timestamp)
+        with self.assertRaises(KeyError):
+            self.storage.get(log.user_id, log.timestamp)
+        
+
     def test_search_by_date(self):
         timestamp = datetime.utcnow()
-        log = WeightLog(
-            user_id=self.user_id,
-            weight=random_decimal(start=40, end=200),
-            unit='kg', timestamp=timestamp
-        )
+        log = self.random_log()
+        log.timestamp = timestamp
         self.storage.save(log)
 
         future = timestamp + relativedelta(years=1)
@@ -91,15 +106,11 @@ class WeightLogStorageTests(unittest.TestCase):
         self.assertEqual(len(results), 0)
     
     def test_sort(self):
-        timestamp = datetime.utcnow()
         count = random.randint(1, 10)
         logs = []
         for i in range(count):
-            log = WeightLog(
-                user_id=self.user_id,
-                weight=random_decimal(start=40, end=200),
-                unit='kg', timestamp=timestamp + relativedelta(days=i)
-            )
+            log = self.random_log()
+            log.timestamp = log.timestamp + relativedelta(days=i)
             self.storage.save(log)
             logs.append(log)
         
@@ -111,15 +122,11 @@ class WeightLogStorageTests(unittest.TestCase):
         self.assertEqual(results, list(reversed(results_desc)))
 
     def test_top(self):
-        timestamp = datetime.utcnow()
         count = random.randint(1, 10)
         logs = []
         for i in range(count):
-            log = WeightLog(
-                user_id=self.user_id,
-                weight=random_decimal(start=40, end=200),
-                unit='kg', timestamp=timestamp + relativedelta(days=i)
-            )
+            log = self.random_log()
+            log.timestamp = log.timestamp + relativedelta(days=i)
             self.storage.save(log)
             logs.append(log)
 
