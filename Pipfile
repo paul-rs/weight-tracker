@@ -15,6 +15,7 @@ name = "pypi"
 tox = "*"
 pytest = "*"
 moto = "*"
+pytest-cov = "*"
 
 
 [requires]

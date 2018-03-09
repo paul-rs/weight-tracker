@@ -7,4 +7,4 @@ install:
   - pipenv install --dev
 # command to run tests
 script:
-    - pipenv run python -m pytest tests
+    - pipenv run python -m pytest --cov=storage --cov=core tests
