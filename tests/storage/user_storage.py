@@ -16,8 +16,8 @@ class UserStorageTests(unittest.TestCase):
         self.mock_dynamodb = mock_dynamodb2()
         self.mock_dynamodb.start()
         
-        self.setup_dynamodb()
         self.storage = UserStorage(stage='dev')
+        self.setup_dynamodb()
         self.addCleanup(self.mock_dynamodb.stop)
     
     def setup_dynamodb(self):
