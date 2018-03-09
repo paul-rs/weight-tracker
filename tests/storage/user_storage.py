@@ -13,12 +13,12 @@ from dateutil.relativedelta import relativedelta
 class UserStorageTests(unittest.TestCase):
 
     def setUp(self):
-        self.storage = UserStorage(stage='dev')
-
         self.mock_dynamodb = mock_dynamodb2()
         self.mock_dynamodb.start()
-
+        
         self.setup_dynamodb()
+        self.storage = UserStorage(stage='dev')
+        self.addCleanup(self.mock_dynamodb.stop)
     
     def setup_dynamodb(self):
         dynamodb = boto3.resource('dynamodb', region_name=DEFAULT_REGION)
@@ -36,8 +36,6 @@ class UserStorageTests(unittest.TestCase):
             waiter.wait(TableName=self.storage.table_name)
         except Exception:
             pass
-        finally:
-            self.mock_dynamodb.stop()
 
     def test_save(self):
         user = random_user()
