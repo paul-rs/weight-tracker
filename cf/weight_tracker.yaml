@@ -74,7 +74,7 @@ Resources:
   WeightsDB:
     Type: "AWS::DynamoDB::Table"
     Properties:
-      TableName: !Sub 'weights-${Stage}'
+      TableName: !Sub 'weight-logs-${Stage}'
       AttributeDefinitions:
         -
           AttributeName: user_id

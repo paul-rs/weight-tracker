@@ -20,4 +20,15 @@ class Model(ABC):
     def to_json(self):
         return json.loads(self.to_json_string())
 
+    def __eq__(self, other):
+        if not isinstance(other, Model):
+            return False
 
+        return self.to_json() == other.to_json()
+    
+    def __hash__(self):
+        output = []
+        for (k, v) in self.to_json().items():
+            output_value = hash(tuple(sorted(v))) if isinstance(v, dict) else v
+            output.append((k, output_value))
+        return hash(tuple(sorted(output)))

@@ -3,7 +3,7 @@ from datetime import datetime, date
 from core.model import Model
 from decimal import Decimal
 
-class WeightRecord(Model):
+class WeightLog(Model):
 
     def __init__(self, user_id, weight, unit, timestamp):
         self.user_id = user_id
@@ -20,7 +20,7 @@ class WeightRecord(Model):
         try:
             self._weight = Decimal(value)
         except ValueError:
-            raise ValueError(f'Could not convert {value} to an decimal value.')
+            raise ValueError(f'Could not convert {value} to a decimal value.')
 
     @property
     def timestamp(self):
@@ -37,3 +37,6 @@ class WeightRecord(Model):
             self._timestamp = value
         else:
             raise TypeError('Invalid type for attribute "timestamp".')
+    
+    def __repr(self):
+        return ':'.join([self.user_id, self.timestamp.isoformat()])
