@@ -1,7 +1,7 @@
 from dateutil.parser import parse
 from datetime import datetime, date
 from core.model import Model
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 class WeightLog(Model):
 
@@ -18,9 +18,14 @@ class WeightLog(Model):
     @weight.setter
     def weight(self, value):
         try:
-            self._weight = Decimal(value)
-        except ValueError:
+            value = Decimal(value)
+        except (ValueError, TypeError, InvalidOperation):
             raise ValueError(f'Could not convert {value} to a decimal value.')
+        
+        if value < 1:
+            raise ValueError(f'Must be a positive value.')
+        else:
+            self._weight = value
 
     @property
     def timestamp(self):
@@ -35,6 +40,8 @@ class WeightLog(Model):
             self._timestamp = parse(value)
         elif isinstance(value, datetime):
             self._timestamp = value
+        elif isinstance(value, date):
+            self._timestamp = datetime.combine(value, datetime.min.time())
         else:
             raise TypeError('Invalid type for attribute "timestamp".')
     

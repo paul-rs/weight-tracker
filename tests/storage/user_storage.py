@@ -6,7 +6,7 @@ from core.config import DEFAULT_REGION
 from datetime import datetime
 from moto.dynamodb2 import mock_dynamodb2
 from storage.user_storage import UserStorage
-from utils.random_utils import random_string, random_decimal
+from utils.random_utils import random_string, random_decimal, random_user
 from dateutil.relativedelta import relativedelta
 
 
@@ -38,24 +38,9 @@ class UserStorageTests(unittest.TestCase):
             pass
         finally:
             self.mock_dynamodb.stop()
-    
-    def random_user(self):
-        current_weight = random_decimal(start=40, end=200)
-        return User(
-            user_id=random_string(), weight=current_weight,
-            target_weight=current_weight - random_decimal(5, 20),
-            target_date=datetime.utcnow() + relativedelta(weeks=6),
-            name=random_string(), age=random_decimal(18, 100),
-            gender=random.choice(['M', 'F']), height=random_decimal(100, 250),
-            unit_preference='kg'
-        )
-
-    def test_json(self):
-        user = self.random_user()
-        self.assertEqual(user, User(**user.to_json()))
 
     def test_save(self):
-        user = self.random_user()
+        user = random_user()
         self.storage.save(user)
         saved_user = self.storage.get(user_id=user.user_id)
         self.assertEqual(saved_user, user)

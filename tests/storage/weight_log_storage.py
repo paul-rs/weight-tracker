@@ -6,7 +6,7 @@ from core.config import DEFAULT_REGION
 from datetime import datetime
 from moto.dynamodb2 import mock_dynamodb2
 from storage.weight_log_storage import WeightLogStorage
-from utils.random_utils import random_string, random_decimal
+from utils.random_utils import random_string, random_decimal, random_log
 from dateutil.relativedelta import relativedelta
 
 
@@ -46,37 +46,29 @@ class WeightLogStorageTests(unittest.TestCase):
         finally:
             self.mock_dynamodb.stop()
 
-    def random_log(self):
-        return WeightLog(
-            user_id=self.user_id,
-            weight=random_decimal(start=40, end=200),
-            unit='kg', timestamp=datetime.utcnow()
-        )
-
     def test_json(self):
-        log = self.random_log()
+        log = random_log(user_id=self.user_id)
         self.assertEqual(log, WeightLog(**log.to_json()))
 
     def test_save(self):
-        log = self.random_log()
+        log = random_log(user_id=self.user_id)
         self.storage.save(log)
         saved_log = self.storage.get(log.user_id, log.timestamp)
         self.assertEqual(saved_log, log)
 
     def test_remove(self):
-        log = self.random_log()
+        log = random_log(user_id=self.user_id)
         self.storage.save(log)
         saved_log = self.storage.get(log.user_id, log.timestamp)
         self.assertEqual(saved_log, log)
 
         self.storage.remove(user_id=log.user_id, timestamp=log.timestamp)
         with self.assertRaises(KeyError):
-            self.storage.get(log.user_id, log.timestamp)
-        
+            self.storage.get(log.user_id, log.timestamp)    
 
     def test_search_by_date(self):
         timestamp = datetime.utcnow()
-        log = self.random_log()
+        log = random_log(user_id=self.user_id)
         log.timestamp = timestamp
         self.storage.save(log)
 
@@ -109,7 +101,7 @@ class WeightLogStorageTests(unittest.TestCase):
         count = random.randint(1, 10)
         logs = []
         for i in range(count):
-            log = self.random_log()
+            log = random_log(user_id=self.user_id)
             log.timestamp = log.timestamp + relativedelta(days=i)
             self.storage.save(log)
             logs.append(log)
@@ -125,7 +117,7 @@ class WeightLogStorageTests(unittest.TestCase):
         count = random.randint(1, 10)
         logs = []
         for i in range(count):
-            log = self.random_log()
+            log = random_log(user_id=self.user_id)
             log.timestamp = log.timestamp + relativedelta(days=i)
             self.storage.save(log)
             logs.append(log)
