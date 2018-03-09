@@ -7,10 +7,13 @@ from core.weight_log import WeightLog
 
 
 class WeightLogTests(unittest.TestCase):
-
-    def test_json(self):
+   
+    def test_equality(self):
         log = random_log()
-        self.assertEqual(log, WeightLog(**log.to_json()))
+        log_2 = WeightLog(**log.to_json())
+        self.assertEqual(log, log_2)
+        self.assertEqual(hash(log), hash(log_2))
+        self.assertNotEqual(log, None)
     
     def test_weight_property(self):
         valid_values = [100, '100', '100.23', Decimal(100)]

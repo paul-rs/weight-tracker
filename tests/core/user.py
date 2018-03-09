@@ -7,4 +7,6 @@ class UserTests(unittest.TestCase):
 
      def test_json(self):
         user = random_user()
-        self.assertEqual(user, User(**user.to_json()))
+        user_2 = User(**user.to_json())
+        self.assertEqual(user, user_2)
+        self.assertEqual(hash(user), hash(user_2))

@@ -37,10 +37,15 @@ class UserStorageTests(unittest.TestCase):
         except Exception:
             pass
 
-    def test_save(self):
+    def test_save_and_get(self):
         user = random_user()
         self.storage.save(user)
         saved_user = self.storage.get(user_id=user.user_id)
         self.assertEqual(saved_user, user)
+
+        with self.assertRaises(KeyError):
+            self.storage.get(user_id=user.user_id * 2)
+    
+
 
 

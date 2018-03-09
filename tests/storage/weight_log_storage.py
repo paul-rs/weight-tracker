@@ -48,11 +48,14 @@ class WeightLogStorageTests(unittest.TestCase):
         log = random_log(user_id=self.user_id)
         self.assertEqual(log, WeightLog(**log.to_json()))
 
-    def test_save(self):
+    def test_save_and_get(self):
         log = random_log(user_id=self.user_id)
         self.storage.save(log)
         saved_log = self.storage.get(log.user_id, log.timestamp)
         self.assertEqual(saved_log, log)
+
+        with self.assertRaises(KeyError):
+            self.storage.get(log.user_id, log.timestamp + relativedelta(years=1))
 
     def test_remove(self):
         log = random_log(user_id=self.user_id)
