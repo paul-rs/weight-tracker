@@ -9,7 +9,7 @@ def json_handler(value):
     if isinstance(value, Decimal):
         return str(value)
     if isinstance(value, Model):
-            return value.to_json()
+        return value.to_json()
     raise TypeError("JSON Handler Failed on value '%s': Unknown type '%s'" % (value, type(value)))
 
 class Model(ABC):

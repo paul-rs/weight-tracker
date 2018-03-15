@@ -46,6 +46,15 @@ class UserStorageTests(unittest.TestCase):
         with self.assertRaises(KeyError):
             self.storage.get(user_id=user.user_id * 2)
     
+    def test_remove(self):
+        user = random_user()
+        self.storage.save(user)
+        saved_user = self.storage.get(user.user_id)
+        self.assertEqual(saved_user, user)
+
+        self.storage.remove(user_id=user.user_id)
+        with self.assertRaises(KeyError):
+            self.storage.get(user.user_id)    
 
 
 

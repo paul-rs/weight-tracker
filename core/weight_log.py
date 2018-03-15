@@ -44,6 +44,3 @@ class WeightLog(Model):
             self._timestamp = datetime.combine(value, datetime.min.time())
         else:
             raise TypeError('Invalid type for attribute "timestamp".')
-    
-    def __repr__(self):
-        return ':'.join([self.user_id, self.timestamp.isoformat()])

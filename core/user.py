@@ -1,5 +1,5 @@
 from core.model import Model
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from dateutil.parser import parse
 from datetime import date, datetime
 
@@ -26,21 +26,32 @@ class User(Model):
     
     @weight.setter
     def weight(self, value):
+        # todo: wrap/reuse this kind of validation
         try:
-            self._weight = Decimal(value)
-        except ValueError:
+            value = Decimal(value)
+        except (ValueError, TypeError, InvalidOperation):
             raise ValueError(f'Could not convert {value} to a decimal value.')
+        
+        if value < 1:
+            raise ValueError(f'Must be a positive value.')
+        else:
+            self._weight = value
     
     @property
     def target_weight(self):
-        return self._weight
+        return self._target_weight
     
     @target_weight.setter
     def target_weight(self, value):
         try:
-            self._target_weight = Decimal(value)
-        except ValueError:
+            value = Decimal(value)
+        except (ValueError, TypeError, InvalidOperation):
             raise ValueError(f'Could not convert {value} to a decimal value.')
+        
+        if value < 1:
+            raise ValueError(f'Must be a positive value.')
+        else:
+            self._target_weight = value
     
     @property
     def target_date(self):
